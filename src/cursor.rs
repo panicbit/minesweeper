@@ -1,6 +1,6 @@
 use crate::TryAdd;
 
-
+#[derive(Debug)]
 pub struct Cursor {
     x: usize,
     y: usize,
@@ -44,7 +44,7 @@ impl Cursor {
     }
 
     pub fn position_is_valid(&self, x: usize, y: usize) -> bool {
-        self.x < self.max_x && self.y < self.max_y
+        x < self.max_x && y < self.max_y
     }
 
     pub fn up(&mut self) {

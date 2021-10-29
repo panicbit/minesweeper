@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::fmt::Display;
 use std::io::{self, Stdout};
 
-use crossterm::style::{Color, Print, SetColors};
-use crossterm::{ExecutableCommand, cursor, event};
+use crossterm::style::Print;
+use crossterm::{ExecutableCommand, event};
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture, Event};
 use crossterm::terminal::{self, Clear, ClearType};
@@ -13,6 +13,7 @@ pub struct Term {
 }
 
 impl Term {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Term {
         let mut stdout = io::stdout();
 
@@ -27,16 +28,16 @@ impl Term {
     }
 
     pub fn print(&self, text: impl Display) {
-        self.stdout.borrow_mut().execute(Print(text));
+        self.stdout.borrow_mut().execute(Print(text)).ok();
     }
 
     pub fn clear(&self) {
-        self.stdout.borrow_mut().execute(Clear(ClearType::All));
+        self.stdout.borrow_mut().execute(Clear(ClearType::All)).ok();
         self.move_to(0, 0);
     }
 
     pub fn move_to(&self, x: u16, y: u16) {
-        self.stdout.borrow_mut().execute(MoveTo(x, y));
+        self.stdout.borrow_mut().execute(MoveTo(x, y)).ok();
     }
 
     pub fn read_input(&self) -> Event {

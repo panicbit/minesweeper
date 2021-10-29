@@ -31,7 +31,7 @@ impl Field {
     }
 
     pub fn fill_with_mines(&mut self, num_mines: usize) {
-        let ref mut rng = rand::thread_rng();
+        let rng = &mut rand::thread_rng();
         
         let selected_cells = self.cells.iter_mut()
             .filter(|cell| !cell.is_mine && !cell.is_revealed)
@@ -74,7 +74,7 @@ impl Field {
 
         let num_neighbour_mines = self.num_neighbour_mines(x, y);
 
-        /// Cells without adjacent mines can recursively reveal their neighbours
+        // Cells without adjacent mines can recursively reveal their neighbours
         if num_neighbour_mines == 0 {
             for (x, y) in self.neighbour_positions(x, y) {
                 self.reveal(x, y);
@@ -114,16 +114,6 @@ impl Field {
         });
 
         positions
-    }
-
-    fn neighbour_indices(&self, x: usize, y: usize) -> impl Iterator<Item = usize> + '_ {
-        let positions = self.neighbour_positions(x, y);
-
-        let indices = positions.filter_map(move |(x, y)|
-            self.cell_index(x, y)
-        );
-
-        indices
     }
 
     fn cell_index(&self, x: usize, y: usize) -> Option<usize> {
