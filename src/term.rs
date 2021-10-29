@@ -5,7 +5,7 @@ use crossterm::style::{ContentStyle, Print};
 use crossterm::{QueueableCommand, event};
 use crossterm::cursor::{Hide, MoveTo, MoveToRow, Show};
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture, Event};
-use crossterm::terminal;
+use crossterm::terminal::{self, DisableLineWrap, EnableLineWrap};
 
 use crate::Cursor;
 
@@ -57,7 +57,16 @@ impl Term {
     }
 
     pub fn read_input(&self) -> Event {
-        event::read().unwrap()
+        let event = event::read().unwrap();
+
+        if let Event::Resize(x, y) = event {
+            let x = x as usize;
+            let y = y as usize;
+
+            self.back_buffer.borrow_mut().resize(x, y);
+        }
+
+        event
     }
 
     pub fn present(&self) {
@@ -103,12 +112,14 @@ impl Term {
 
         stdout.queue(Hide).ok();
         stdout.queue(EnableMouseCapture).ok();
+        stdout.queue(DisableLineWrap).ok();
         stdout.flush().ok();
     }
 
     fn term_shutdown(&mut self) {
         let mut stdout = self.stdout.borrow_mut();
 
+        stdout.queue(EnableLineWrap).ok();
         stdout.queue(DisableMouseCapture).ok();
         stdout.queue(Show).ok();
         stdout.flush().ok();
@@ -142,6 +153,10 @@ impl Buffer {
             width,
             cursor,
         }
+    }
+
+    pub fn resize(&mut self, width: usize, height: usize) {
+        *self = Self::new(width, height);
     }
 
     pub fn clear(&mut self) {
