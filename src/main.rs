@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use anyhow::*;
-use crossterm::{event::{Event, KeyCode, KeyEvent, KeyModifiers}, style::{Attribute, Color, ContentStyle, StyledContent, Stylize}};
+use crossterm::{event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEventKind}, style::{Attribute, Color, ContentStyle, StyledContent, Stylize}};
 use rand::seq::IteratorRandom;
 
 mod field;
@@ -44,19 +44,48 @@ impl Game {
         }
     }
 
-    fn render(&self, show_revealed: bool) {
+    fn run(mut self) {
+        loop {
+            self.render();
+
+            match self.outcome() {
+                Outcome::Pending => {},
+                Outcome::Won => {
+                    println!("YOU WON!");
+                    return;
+                },
+                Outcome::Lost => {
+                    println!("YOU LOST!");
+                    return;
+                }
+            }
+
+            match self.read_input() {
+                Action::Quit => return,
+                Action::RevealAt(x, y) => self.reveal_at(x, y),
+                Action::RevealAtCursor => self.reveal_at_cursor(),
+                Action::Up => self.cursor.up(),
+                Action::Down => self.cursor.down(),
+                Action::Left => self.cursor.left(),
+                Action::Right => self.cursor.right(),
+                Action::Redraw => continue,
+            }
+        }
+    }
+
+    fn render(&self) {
         self.term.clear();
 
         for (y, row) in self.field.rows_enumerated() {
             for (x, cell) in row {
-                self.render_cell(cell, x, y, show_revealed);
+                self.render_cell(cell, x, y);
             }
 
             println!();
         }
     }
 
-    fn render_cell(&self, cell: &Cell, x: usize, y: usize, show_revealed: bool) {
+    fn render_cell(&self, cell: &Cell, x: usize, y: usize) {
         let mut style = ContentStyle::new();
 
         let is_highlighted = self.cursor.is_at(x, y);
@@ -99,6 +128,11 @@ impl Game {
         self.field.reveal(x, y);
     }
 
+    fn reveal_at(&mut self, x: usize, y: usize) {
+        self.cursor.set_position(x, y);
+        self.field.reveal(x, y);
+    }
+
     fn read_input(&self) -> Action {
         match self.term.read_input() {
             Event::Key(key) if key.modifiers == KeyModifiers::CONTROL => match key.code {
@@ -114,38 +148,16 @@ impl Game {
                 KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
                 _ => Action::Redraw,
             },
-            Event::Mouse(_) => Action::Redraw,
-            Event::Resize(_, _) => Action::Redraw,
-        }
-    }
-
-    fn run(mut self) {
-        loop {
-            let show_revealed = false;
-
-            self.render(true);
-
-            match self.outcome() {
-                Outcome::Pending => {},
-                Outcome::Won => {
-                    println!("YOU WON!");
-                    return;
+            Event::Mouse(mouse) => match mouse.kind {
+                MouseEventKind::Up(MouseButton::Left) => {
+                    let x = mouse.column as usize;
+                    let y = mouse.row as usize;
+                    
+                    Action::RevealAt(x, y)
                 },
-                Outcome::Lost => {
-                    println!("YOU LOST!");
-                    return;
-                }
-            }
-
-            match self.read_input() {
-                Action::Quit => return,
-                Action::RevealAtCursor => self.reveal_at_cursor(),
-                Action::Up => self.cursor.up(),
-                Action::Down => self.cursor.down(),
-                Action::Left => self.cursor.left(),
-                Action::Right => self.cursor.right(),
-                Action::Redraw => continue,
-            }
+                _ => self.read_input(),
+            },
+            Event::Resize(_, _) => Action::Redraw,
         }
     }
 
@@ -171,6 +183,7 @@ impl Game {
 
 enum Action {
     Quit,
+    RevealAt(usize, usize),
     RevealAtCursor,
     Up,
     Down,

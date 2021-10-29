@@ -5,7 +5,7 @@ use std::io::{self, Stdout};
 use crossterm::style::{Color, Print, SetColors};
 use crossterm::{ExecutableCommand, cursor, event};
 use crossterm::cursor::{Hide, MoveTo, Show};
-use crossterm::event::Event;
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture, Event};
 use crossterm::terminal::{self, Clear, ClearType};
 
 pub struct Term {
@@ -19,6 +19,7 @@ impl Term {
         terminal::enable_raw_mode().ok();
 
         stdout.execute(Hide).ok();
+        stdout.execute(EnableMouseCapture).ok();
 
         Self {
             stdout: RefCell::new(stdout),
@@ -45,6 +46,7 @@ impl Term {
 
 impl Drop for Term {
     fn drop(&mut self) {
+        self.stdout.borrow_mut().execute(DisableMouseCapture).ok();
         self.stdout.borrow_mut().execute(Show).ok();
         terminal::disable_raw_mode().ok();
     }

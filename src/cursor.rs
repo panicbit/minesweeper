@@ -34,6 +34,19 @@ impl Cursor {
         (self.x, self.y)
     }
 
+    pub fn set_position(&mut self, x: usize, y: usize) {
+        if !self.position_is_valid(x, y) {
+            return;
+        }
+        
+        self.x = x;
+        self.y = y;
+    }
+
+    pub fn position_is_valid(&self, x: usize, y: usize) -> bool {
+        self.x < self.max_x && self.y < self.max_y
+    }
+
     pub fn up(&mut self) {
         self.apply_offset(0, -1);
     }
@@ -61,11 +74,7 @@ impl Cursor {
         let x = self.x.try_add(x_off)?;
         let y = self.y.try_add(y_off)?;
 
-        if x >= self.max_x {
-            return None;
-        }
-
-        if y >= self.max_y {
+        if !self.position_is_valid(x, y) {
             return None;
         }
 
