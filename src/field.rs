@@ -162,4 +162,10 @@ impl Field {
     pub fn dimensions(&self) -> (usize, usize) {
         (self.width(), self.height())
     }
+
+    pub fn toggle_flag(&mut self, x: usize, y: usize) {
+        if let Some(cell) = self.get_mut(x, y) {
+            cell.is_flagged = !cell.is_flagged;
+        }
+    }
 }

@@ -3,4 +3,5 @@
 pub struct Cell {
     pub is_revealed: bool,
     pub is_mine: bool,
+    pub is_flagged: bool,
 }

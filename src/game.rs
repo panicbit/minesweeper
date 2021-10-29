@@ -42,6 +42,8 @@ impl Game {
                 Action::Quit => return,
                 Action::RevealAt(x, y) => self.reveal_at(x, y),
                 Action::RevealAtCursor => self.reveal_at_cursor(),
+                Action::ToggleFlagAt(x, y) => self.toggle_flag_at(x, y),
+                Action::ToggleFlagAtCursor => self.toggle_flag_at_cursor(),
                 Action::Up => self.cursor.up(),
                 Action::Down => self.cursor.down(),
                 Action::Left => self.cursor.left(),
@@ -73,7 +75,11 @@ impl Game {
         }
 
         if !cell.is_revealed {
-            self.term.print(style.apply("#"));
+            if cell.is_flagged {
+                self.term.print(style.apply("!").on_red());
+            } else {
+                self.term.print(style.apply("#"));
+            }
             return;
         }
 
@@ -111,6 +117,17 @@ impl Game {
         self.field.reveal(x, y);
     }
 
+    fn toggle_flag_at_cursor(&mut self) {
+        let (x, y) = self.cursor.position();
+
+        self.field.toggle_flag(x, y);
+    }
+
+    fn toggle_flag_at(&mut self, x: usize, y: usize) {
+        self.cursor.set_position(x, y);
+        self.field.toggle_flag(x, y);
+    }
+
     fn read_input(&mut self) -> Action {
         match self.term.read_input() {
             Event::Key(key) if key.modifiers == KeyModifiers::CONTROL => match key.code {
@@ -123,6 +140,7 @@ impl Game {
                 KeyCode::Left => Action::Left,
                 KeyCode::Right => Action::Right,
                 KeyCode::Enter => Action::RevealAtCursor,
+                KeyCode::Char(' ') => Action::ToggleFlagAtCursor,
                 KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
                 _ => Action::Redraw,
             },
@@ -138,6 +156,12 @@ impl Game {
                         
                         Action::RevealAt(x, y)
                     },
+                    Some(MouseButton::Right) => {
+                        let x = mouse.column as usize;
+                        let y = mouse.row as usize;
+
+                        Action::ToggleFlagAt(x, y)
+                    }
                     _ => self.read_input(),
                 },
                 _ => self.read_input(),
@@ -170,6 +194,8 @@ enum Action {
     Quit,
     RevealAt(usize, usize),
     RevealAtCursor,
+    ToggleFlagAt(usize, usize),
+    ToggleFlagAtCursor,
     Up,
     Down,
     Left,
