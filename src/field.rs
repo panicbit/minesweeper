@@ -62,7 +62,7 @@ impl Field {
             None => return false,
         };
 
-        if cell.is_revealed {
+        if cell.is_revealed || cell.is_flagged {
             return false;
         }
 
