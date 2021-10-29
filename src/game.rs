@@ -29,11 +29,11 @@ impl Game {
             match self.outcome() {
                 Outcome::Pending => {},
                 Outcome::Won => {
-                    println!("YOU WON!");
+                    self.term.println("YOU WON!");
                     return;
                 },
                 Outcome::Lost => {
-                    println!("YOU LOST!");
+                    self.term.println("YOU LOST!");
                     return;
                 }
             }
@@ -59,7 +59,7 @@ impl Game {
                 self.render_cell(cell, x, y);
             }
 
-            println!();
+            self.term.println("");
         }
     }
 

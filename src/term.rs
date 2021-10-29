@@ -31,6 +31,10 @@ impl Term {
         self.stdout.borrow_mut().execute(Print(text)).ok();
     }
 
+    pub fn println(&self, text: impl Display) {
+        self.stdout.borrow_mut().execute(Print("\r\n")).ok();
+    }
+
     pub fn clear(&self) {
         self.stdout.borrow_mut().execute(Clear(ClearType::All)).ok();
         self.move_to(0, 0);
