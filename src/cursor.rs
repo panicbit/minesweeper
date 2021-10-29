@@ -34,6 +34,14 @@ impl Cursor {
         (self.x, self.y)
     }
 
+    pub fn set_x(&mut self, x: usize) {
+        self.set_position(x, self.y())
+    }
+
+    pub fn set_y(&mut self, y: usize) {
+        self.set_position(self.x(), y)
+    }
+
     pub fn set_position(&mut self, x: usize, y: usize) {
         if !self.position_is_valid(x, y) {
             return;

@@ -1,4 +1,4 @@
-use crossterm::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind};
+use crossterm::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use crossterm::style::{Attribute, ContentStyle, Stylize};
 
 use crate::{Cell, Cursor, Field, Term};
@@ -29,11 +29,13 @@ impl Game {
             match self.outcome() {
                 Outcome::Pending => {},
                 Outcome::Won => {
-                    self.term.println("YOU WON!");
+                    self.term.print("YOU WON!", ContentStyle::new());
+                    self.term.present();
                     return;
                 },
                 Outcome::Lost => {
-                    self.term.println("YOU LOST!");
+                    self.term.print("YOU LOST!", ContentStyle::new());
+                    self.term.present();
                     return;
                 }
             }
@@ -44,6 +46,7 @@ impl Game {
                 Action::RevealAtCursor => self.reveal_at_cursor(),
                 Action::ToggleFlagAt(x, y) => self.toggle_flag_at(x, y),
                 Action::ToggleFlagAtCursor => self.toggle_flag_at_cursor(),
+                Action::MoveTo(x, y) => self.cursor.set_position(x, y),
                 Action::Up => self.cursor.up(),
                 Action::Down => self.cursor.down(),
                 Action::Left => self.cursor.left(),
@@ -61,8 +64,10 @@ impl Game {
                 self.render_cell(cell, x, y);
             }
 
-            self.term.println("");
+            self.term.new_line();
         }
+
+        self.term.present();
     }
 
     fn render_cell(&self, cell: &Cell, x: usize, y: usize) {
@@ -76,15 +81,15 @@ impl Game {
 
         if !cell.is_revealed {
             if cell.is_flagged {
-                self.term.print(style.apply("!").on_red());
+                self.term.print_char('!', style.on_red());
             } else {
-                self.term.print(style.apply("#"));
+                self.term.print_char('#', style);
             }
             return;
         }
 
         if cell.is_mine {
-            self.term.print(style.apply("*").red());
+            self.term.print_char('*', style.red());
             return;
         }
         
@@ -99,11 +104,20 @@ impl Game {
             _ => style.magenta(),
         };
 
-        if num_neighbour_mines == 0 {
-            self.term.print(style.apply(" "));
-        } else {
-            self.term.print(style.apply(num_neighbour_mines));
-        }
+        let label = match num_neighbour_mines {
+            0 => ' ',
+            1 => '1',
+            2 => '2',
+            3 => '3',
+            4 => '4',
+            5 => '5',
+            6 => '6',
+            7 => '7',
+            8 => '8',
+            _ => 'X',
+        };
+
+        self.term.print_char(label, style);
     }
 
     fn reveal_at_cursor(&mut self) {
@@ -144,29 +158,29 @@ impl Game {
                 KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
                 _ => Action::Redraw,
             },
-            Event::Mouse(mouse) => match mouse.kind {
-                MouseEventKind::Down(button) => {
-                    self.held_mouse_button = Some(button);
-                    self.read_input()
-                }
-                MouseEventKind::Up(_) => match self.held_mouse_button.take() {
-                    Some(MouseButton::Left) => {
-                        let x = mouse.column as usize;
-                        let y = mouse.row as usize;
-                        
-                        Action::RevealAt(x, y)
-                    },
-                    Some(MouseButton::Right) => {
-                        let x = mouse.column as usize;
-                        let y = mouse.row as usize;
-
-                        Action::ToggleFlagAt(x, y)
-                    }
-                    _ => self.read_input(),
-                },
-                _ => self.read_input(),
-            },
+            Event::Mouse(mouse) => self.handle_mouse(mouse),
             Event::Resize(_, _) => Action::Redraw,
+        }
+    }
+
+    fn handle_mouse(&mut self, mouse: MouseEvent) -> Action {
+        let x = mouse.column as usize;
+        let y = mouse.row as usize;
+
+        match mouse.kind {
+            MouseEventKind::Down(button) => {
+                self.held_mouse_button = Some(button);
+
+                Action::Redraw
+            },
+            MouseEventKind::Moved => Action::MoveTo(x, y),
+            MouseEventKind::Drag(_) => Action::MoveTo(x, y),
+            MouseEventKind::Up(_) => match self.held_mouse_button.take() {
+                Some(MouseButton::Left) => Action::RevealAt(x, y),
+                Some(MouseButton::Right) => Action::ToggleFlagAt(x, y),
+                _ => Action::Redraw,
+            },
+            _ => Action::Redraw,
         }
     }
 
@@ -196,6 +210,7 @@ enum Action {
     RevealAtCursor,
     ToggleFlagAt(usize, usize),
     ToggleFlagAtCursor,
+    MoveTo(usize, usize),
     Up,
     Down,
     Left,
