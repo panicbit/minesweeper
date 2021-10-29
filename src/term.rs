@@ -32,6 +32,7 @@ impl Term {
     }
 
     pub fn println(&self, text: impl Display) {
+        self.stdout.borrow_mut().execute(Print(text)).ok();
         self.stdout.borrow_mut().execute(Print("\r\n")).ok();
     }
 
